@@ -6,7 +6,7 @@ from loguru import logger
 
 from PIL import Image
 
-SERVER_ADDRESS = ('localhost', 8000)
+SERVER_ADDRESS = ('0.0.0.0', 8000)
 ALLOWED_EXTENSIONS = ('jpg', 'jpeg', 'png', 'gif')
 ALLOWED_LENGTH = (5 * 1024 * 1024)
 
