@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>Uploaded Images</h1>
+    <ul id="image-list"></ul>
+
+    <script>
+        fetch('http://localhost:8000/images')
+            .then(response => response.json())
+            .then(data => {
+                const ul = document.getElementById('image-list');
+                data.images.forEach(image => {
+                    const li = document.createElement('li');
+                    const img = document.createElement('img');
+                    img.src = `/images/${image}`;
+                    img.width = 200;  // Опционально: ограничение ширины
+                    li.appendChild(img);
+                    ul.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Error fetching images:', error));
+    </script>
+</body>
+<!--<script>src="all_images.js"</script>-->
+</html>
