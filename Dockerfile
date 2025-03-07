@@ -6,7 +6,9 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app.py .
+COPY static/ /app/static/
+# Гарантируем наличие static в /app/static
 
 EXPOSE 8000
 
