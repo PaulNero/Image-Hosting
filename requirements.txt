@@ -2,3 +2,5 @@ loguru==0.7.3
 pillow==11.1.0
 setuptools==75.8.0
 wheel==0.45.1
+python-magic==0.4.27
+aiohttp==3.9.3
