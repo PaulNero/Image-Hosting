@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Загрузка изображения</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="stylesheet" href="/static/button.css">
@@ -17,21 +18,108 @@
             margin-top: 20px;
             text-align: center;
         }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .error {
+            color: red;
+            display: none;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Загрузка изображения</h1>
         
-        <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+        <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
             <div class="file-input">
-                <input type="file" name="image" accept="image/jpeg,image/png,image/gif" required>
+                <input type="file" name="file" accept="image/jpeg,image/png,image/gif" required>
             </div>
+            <div class="progress">
+                <div class="progress-bar"></div>
+            </div>
+            <div class="error"></div>
             <div class="buttons">
                 <button type="submit" class="button">Загрузить</button>
                 <a href="/" class="button secondary">На главную</a>
             </div>
         </form>
     </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const progress = document.querySelector('.progress');
+        const progressBar = document.querySelector('.progress-bar');
+        const error = document.querySelector('.error');
+
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            const file = document.querySelector('input[type=file]').files[0];
+            
+            // Проверка размера
+            if (file && file.size > 5 * 1024 * 1024) {
+                error.textContent = 'Файл слишком большой. Максимальный размер 5MB';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Проверка формата
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (file && !allowedTypes.includes(file.type)) {
+                error.textContent = 'Неподдерживаемый формат файла. Разрешены только JPG, PNG и GIF';
+                error.style.display = 'block';
+                return false;
+            }
+
+            // Скрываем ошибку если всё ок
+            error.style.display = 'none';
+            
+            // Показываем прогресс
+            progress.style.display = 'block';
+            progressBar.style.width = '0%';
+
+            const formData = new FormData(form);
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    window.location.href = '/static/upload_success.html';
+                } else {
+                    error.textContent = 'Ошибка загрузки: ' + xhr.responseText;
+                    error.style.display = 'block';
+                }
+                progress.style.display = 'none';
+            };
+
+            xhr.onerror = function() {
+                error.textContent = 'Ошибка сети';
+                error.style.display = 'block';
+                progress.style.display = 'none';
+            };
+
+            xhr.open('POST', '/upload', true);
+            xhr.send(formData);
+        };
+    </script>
 </body>
 </html>
