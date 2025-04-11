@@ -17,25 +17,66 @@
 
 import os
 from http.server import HTTPServer
-from ImageHostingHandler import ImageHostingHandler
+from app.handlers.ImageHostingHandler import ImageHostingHandler
 from dotenv import load_dotenv
 from loguru import logger
-from settings import SERVER_ADDRESS
-from logger_setup import setup_logger
-from DBManager import DBManager
-from Router import Router
-from routes import register_routes
+from config.settings import SERVER_ADDRESS
+from config.logger_setup import setup_logger
+from app.db.DBManager import DBManager
+from app.router import Router
+
+# Было у router перенесено сюда, из-за проблемы с циклическими импортами
+def register_routes(router, handler_class):
+    """
+    Регистрирует все маршруты в роутере.
+    
+    Аргументы:
+        router: экземпляр класса Router
+        handler_class: класс-обработчик запросов
+    """
+    # Статические файлы HTML
+    router.add_route('GET', '/', handler_class.get_index)
+    router.add_route('GET', '/index.html', lambda handler, **kwargs: handler.serve_static_file('index.html'))
+    router.add_route('GET', '/upload.html', lambda handler, **kwargs: handler.serve_static_file('upload.html'))
+    router.add_route('GET', '/upload', handler_class.get_upload)
+    router.add_route('GET', '/all_images.html', lambda handler, **kwargs: handler.serve_static_file('all_images.html'))
+    router.add_route('GET', '/error.html', lambda handler, **kwargs: handler.serve_static_file('error.html'))
+    router.add_route('GET', '/upload_success.html', lambda handler, **kwargs: handler.serve_static_file('upload_success.html'))
+    
+    # Редирект со страницы /images-list на /all_images.html (согласно ТЗ)
+    router.add_route('GET', '/images-list', lambda handler, **kwargs: handler.redirect_to('/all_images.html'))
+    
+    # Добавляем маршрут для HEAD-запросов
+    router.add_route('HEAD', '/', lambda handler, **kwargs: handler.serve_static_file('index.html'))
+    
+    # API для работы с изображениями
+    router.add_route('GET', '/api/images', handler_class.get_images)
+    router.add_route('GET', '/api/images/<filename>', handler_class.get_image)
+    router.add_route('POST', '/api/images', handler_class.post_upload)
+    router.add_route('DELETE', '/api/images/<filename>', handler_class.delete_image)
+    
+    # Маршрут для удаления изображений по ID (согласно ТЗ)
+    router.add_route('GET', '/delete/<id>', handler_class.delete_image_by_id)
+    
+    # Маршрут для доступа к изображениям через /images/
+    router.add_route('GET', '/images/<filename>', handler_class.get_image)
+    
+    # Статические файлы (JS, CSS, иконки)
+    router.add_route('GET', '/static/button.css', lambda handler, **kwargs: handler.serve_static_file('button.css'))
+    router.add_route('GET', '/static/style.css', lambda handler, **kwargs: handler.serve_static_file('style.css'))
+    router.add_route('GET', '/static/all_images.js', lambda handler, **kwargs: handler.serve_static_file('all_images.js'))
+    router.add_route('GET', '/static/<path:path>', handler_class.serve_static_file)
+    router.add_route('GET', '/favicon.ico', lambda handler, **kwargs: handler.serve_static_file('favicon.ico'))
+    
+    logger.info('Routes registered')
 
 # Инициализируем сервер
 def run(server_class=HTTPServer, handler_class=ImageHostingHandler):
     load_dotenv()
     setup_logger()
 
-    db = DBManager(os.getenv('POSTGRES_DB'),
-                   os.getenv('POSTGRES_USER'),
-                   os.getenv('POSTGRES_PASSWORD'),
-                   os.getenv('POSTGRES_HOST'),
-                   os.getenv('POSTGRES_PORT'))
+    # Инициализируем базу данных
+    db = DBManager()
     db.init_tables()
 
     router = Router()

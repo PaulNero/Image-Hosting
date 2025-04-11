@@ -44,7 +44,7 @@
     <div class="container">
         <h1>Загрузка изображения</h1>
         
-        <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+        <form id="uploadForm" action="/api/images" method="post" enctype="multipart/form-data" class="upload-form">
             <div class="file-input">
                 <input type="file" name="file" accept="image/jpeg,image/png,image/gif" required>
             </div>
@@ -103,7 +103,17 @@
 
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    window.location.href = '/static/upload_success.html';
+                    try {
+                        // Сохраняем информацию о загруженном изображении в sessionStorage
+                        const responseData = JSON.parse(xhr.responseText);
+                        sessionStorage.setItem('uploadedImage', xhr.responseText);
+                        
+                        // Перенаправляем на страницу успеха с параметром имени файла
+                        window.location.href = `/upload_success.html?image=${responseData.filename}`;
+                    } catch (e) {
+                        console.error('Ошибка при обработке ответа', e);
+                        window.location.href = '/upload_success.html';
+                    }
                 } else {
                     error.textContent = 'Ошибка загрузки: ' + xhr.responseText;
                     error.style.display = 'block';
@@ -117,7 +127,7 @@
                 progress.style.display = 'none';
             };
 
-            xhr.open('POST', '/upload', true);
+            xhr.open('POST', '/api/images', true);
             xhr.send(formData);
         };
     </script>

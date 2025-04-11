@@ -10,6 +10,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+/data/images/
+/data/logs/
 
 # C extensions
 *.so
@@ -144,4 +146,18 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Database
+data/db/
+*.sqlite3
+*.sqlite3-journal
 

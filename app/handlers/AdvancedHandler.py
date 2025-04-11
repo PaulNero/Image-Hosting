@@ -1,11 +1,12 @@
 import json
 import os.path
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse
 
 from loguru import logger
 
-from Router import Router
-from settings import STATIC_PATH
+from app.router import Router
+from config.settings import STATIC_PATH
 
 class AdvancedHTTPRequestHandler(BaseHTTPRequestHandler):
     """
@@ -27,7 +28,7 @@ class AdvancedHTTPRequestHandler(BaseHTTPRequestHandler):
     """
 
     def __init__(self, request, client_address, server):
-        self.default_response = lambda: self.send_html('404.html', 404)
+        self.default_response = lambda: self.handle_error(404, "Страница не найдена")
         self.router = Router()
         super().__init__(request, client_address, server)
 
@@ -106,59 +107,67 @@ class AdvancedHTTPRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(response).encode('utf-8'))
 
-    def do_GET(self) -> None:
-        logger.info(f'GET {self.path}')
-        handler, kwargs = self.router.resolve('GET', self.path)
-        if handler:
-            handler(self, **kwargs)
-        else:
-            logger.warning(f'No handler for GET {self.path}')
-            self.default_response()
+    def _handle_request(self, method: str) -> None:
+        """
+        Общая логика обработки HTTP-запросов.
+        
+        Параметры:
+        - method: HTTP-метод (GET, POST, PUT, PATCH, DELETE, HEAD)
+        """
+        try:
+            # Разбираем URL
+            parsed_url = urlparse(self.path)
+            path = parsed_url.path
+            
+            # Получаем обработчик для пути
+            handler, result = self.router.resolve(method, path)
+            
+            if isinstance(result, str):
+                # Если result - строка, значит это сообщение об ошибке
+                if result == '404 Not Found':
+                    self.handle_error(404, 'Not Found')
+                elif result == '405 Method Not Allowed':
+                    self.handle_error(405, 'Method Not Allowed')
+                return
+            
+            if handler:
+                # Если это метод get_image, передаем только filename из URL
+                if method == 'GET' and handler.__name__ == 'get_image':
+                    filename = path.split('/')[-1]
+                    handler(self, filename=filename)
+                # Если это метод get_index или get_upload, не передаем никаких аргументов
+                elif handler.__name__ in ['get_index', 'get_upload']:
+                    handler(self)
+                else:
+                    # Для остальных методов передаем все параметры
+                    handler(self, **result)
+            else:
+                self.handle_error(404, 'Not Found')
+        except Exception as e:
+            self.handle_error(500, f'Internal Server Error: {str(e)}')
+
+    def do_GET(self):
+        """Обработка GET запросов"""
+        self._handle_request('GET')
 
     def do_POST(self) -> None:
-        logger.info(f'POST {self.path}')
-        handler, kwargs = self.router.resolve('POST', self.path)
-        if handler:
-            handler(self, **kwargs)
-        else:
-            logger.warning(f'No handler for POST {self.path}')
-            self.default_response()
+        """Обработка POST запросов"""
+        self._handle_request('POST')
 
     def do_PUT(self) -> None:
-        logger.info(f'PUT {self.path}')
-        handler, kwargs = self.router.resolve('PUT', self.path)
-        if handler:
-            handler(self, **kwargs)
-        else:
-            logger.warning(f'No handler for PUT {self.path}')
-            self.default_response()
+        """Обработка PUT запросов"""
+        self._handle_request('PUT')
     
     def do_PATCH(self) -> None:
-        logger.info(f'PATCH {self.path}')
-        handler, kwargs = self.router.resolve('PATCH', self.path)
-        if handler:
-            handler(self, **kwargs)
-        else:
-            logger.warning(f'No handler for PATCH {self.path}')
-            self.default_response()
-
+        """Обработка PATCH запросов"""
+        self._handle_request('PATCH')
 
     def do_DELETE(self) -> None:
-        logger.info(f'DELETE {self.path}')
-        handler, kwargs = self.router.resolve('DELETE', self.path)
-        if handler:
-            handler(self, **kwargs)
-        else:
-            logger.warning(f'No handler for DELETE {self.path}')
-            self.default_response()
+        """Обработка DELETE запросов"""
+        self._handle_request('DELETE')
 
     def do_HEAD(self) -> None:
-        logger.info(f'HEAD {self.path}')
-        handler, kwargs = self.router.resolve('HEAD', self.path)
-        if handler:
-            handler(self, **kwargs)
-        else:
-            logger.warning(f'No handler for HEAD {self.path}')
-            self.default_response()
+        """Обработка HEAD запросов"""
+        self._handle_request('HEAD')
 
     

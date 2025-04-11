@@ -1,12 +1,6 @@
 import re
-
 from loguru import logger
-
-from utils import SingletonMeta
-
-logger.add('logs/router.log',
-            format='[{time:YYYY-MM-DD HH:mm:ss}] {level}: {message}',
-            level='INFO')
+from app.utils.singleton import SingletonMeta
 
 class Router(metaclass=SingletonMeta):
     """
@@ -52,6 +46,13 @@ class Router(metaclass=SingletonMeta):
         Возвращает:
             str: регулярное выражение для поиска совпадений
         """
+        # Специальный случай для <path:path> - захват всего пути
+        if '<path:path>' in path:
+            base_path = path.split('<path:path>')[0]
+            # Создаем регулярное выражение для захвата всего пути после указанного префикса
+            return f'^{base_path}(?P<path>.+)$'
+            
+        # Обычные параметры в угловых скобках
         regex = re.sub(r'<(\w+)>', r'(?P<\1>[^/]+)', path)
         return f'^{regex}$'
 
@@ -68,12 +69,11 @@ class Router(metaclass=SingletonMeta):
         pattern = re.compile(regex_pattern)
 
         self.routes[method][pattern] = handler
-        logger.info(f'Added route: {method} {path} -> {handler.__name__}')
+        # Выводим только имя функции, а не всю функцию
+        handler_name = handler.__name__ if hasattr(handler, '__name__') else str(handler)
+        logger.info(f'Added route: {method} {path} -> {handler_name}')
 
     def resolve(self, method: str, path: str) -> tuple[callable, dict] | tuple[None, str]:
-    
-    # V. Old
-    # def resolve(self, method: str, path: str) -> tuple[callable, dict]:
         """
         Ищет подходящий обработчик по HTTP-методу и пути.
 
@@ -87,13 +87,15 @@ class Router(metaclass=SingletonMeta):
             tuple[None, str]: если маршрут не найден — кортеж из None и строки ошибки:
                             '404 Not Found' или '405 Method Not Allowed'.
         """
+        # Убираем параметры запроса (query params), если они есть
+        path_without_query = path.split('?')[0]
 
         if method not in self.routes:
             return None, '405 Method Not Allowed'
         
-        # Сначала ищем совпадение в текущем методе
+        # Сначала ищем статические точные совпадения
         for pattern, handler in self.routes[method].items():
-            match = pattern.match(path)
+            match = pattern.match(path_without_query)
             if match:
                 return handler, match.groupdict()
     
@@ -102,15 +104,8 @@ class Router(metaclass=SingletonMeta):
             if other_method == method:
                 continue
             for pattern in patterns:
-                if pattern.match(path):
+                if pattern.match(path_without_query):
                     return None, '405 Method Not Allowed'
-                
-        # V. Old
-        # for pattern in self.routes[method]:
-        #     match = pattern.match(path)
-        #     if match:
-        #         handler = self.routes[method][pattern]
-        #         return handler, match.groupdict()
         
-        # Если путь нигде не найден
+        # Если нигде не нашли — 404
         return None, '404 Not Found'
