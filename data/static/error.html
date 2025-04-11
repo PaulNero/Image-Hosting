@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Ошибка {{ status_code }}</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/button.css">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        p {
+            font-size: 1.2em;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ошибка {{ status_code }}</h1>
+        <p>{{ message }}</p>
+        <div class="buttons">
+            <a href="/" class="button secondary">На главную</a>
+    </div>
+</body>
+</html>

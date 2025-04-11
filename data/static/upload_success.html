@@ -33,7 +33,7 @@
         }
         .image-url {
             display: block;
-            margin-top: 5p;
+            margin-top: 5px;
             margin: 20px 0;
             padding: 10px;
             background-color: #f8f8f8;
@@ -51,7 +51,7 @@
         <div class="success-message">
             Ваше изображение было успешно загружено на сервер!
         </div>
-        
+
         <div class="image-container">
             <div class="image-preview">
                 <img id="uploaded-image" src="" alt="Загруженное изображение">
@@ -72,14 +72,28 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Получаем ID изображения из URL
+            // Получаем информацию о загруженном изображении
             const urlParams = new URLSearchParams(window.location.search);
             const imageId = urlParams.get('image');
             
+            // Если есть imageId в параметрах URL
             if (imageId) {
                 const imageUrl = `/images/${imageId}`;
                 document.getElementById('uploaded-image').src = imageUrl;
                 document.getElementById('image-url').textContent = window.location.origin + imageUrl;
+            } 
+            // Если нет параметров, но есть данные в sessionStorage (сохраненные при загрузке)
+            else if (sessionStorage.getItem('uploadedImage')) {
+                try {
+                    const imageData = JSON.parse(sessionStorage.getItem('uploadedImage'));
+                    if (imageData && imageData.filename) {
+                        const imageUrl = `/images/${imageData.filename}`;
+                        document.getElementById('uploaded-image').src = imageUrl;
+                        document.getElementById('image-url').textContent = window.location.origin + imageUrl;
+                    }
+                } catch (e) {
+                    console.error('Ошибка при обработке данных из sessionStorage', e);
+                }
             }
         });
     </script>
