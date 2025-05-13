@@ -221,10 +221,33 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadImages(page = 1) {
         if (isLoading) return;
         isLoading = true;
+        
+        // Добавляем элемент для отображения ошибок
+        const errorContainer = document.getElementById('error-container') || 
+            (() => {
+                const container = document.createElement('div');
+                container.id = 'error-container';
+                container.style.color = 'red';
+                container.style.padding = '10px';
+                container.style.margin = '10px 0';
+                container.style.display = 'none';
+                // Добавляем контейнер перед галереей
+                const galleryContainer = document.getElementById('images-gallery');
+                galleryContainer.parentNode.insertBefore(container, galleryContainer);
+                return container;
+            })();
+        
+        // Скрываем сообщение об ошибке при новой загрузке
+        errorContainer.style.display = 'none';
 
         try {
             // Передаем параметр per_page со значением imagesPerPage
             const response = await fetch(`/api/images?page=${page}&per_page=${imagesPerPage}`);
+            
+            if (!response.ok) {
+                throw new Error(`Ошибка загрузки: ${response.status} ${response.statusText}`);
+            }
+            
             const data = await response.json();
             
             if (page === 1) {
@@ -241,7 +264,17 @@ document.addEventListener('DOMContentLoaded', function() {
             renderAllImages();
             currentPage = page;
         } catch (error) {
-            console.error('Error loading images:', error);
+            console.error('Ошибка загрузки изображений:', error);
+            
+            // Показываем сообщение об ошибке пользователю
+            errorContainer.textContent = `Не удалось загрузить изображения: ${error.message}`;
+            errorContainer.style.display = 'block';
+            
+            // Если это первая страница и произошла ошибка, показываем пустое состояние
+            if (page === 1) {
+                const galleryContainer = document.getElementById('images-gallery');
+                galleryContainer.innerHTML = '<p class="no-images">Не удалось загрузить изображения. Попробуйте обновить страницу.</p>';
+            }
         } finally {
             isLoading = false;
         }
@@ -292,31 +325,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteImageById(image.id);
             };
 
-            const a = document.createElement('a');
+                const a = document.createElement('a');
             a.href = '#';
             a.onclick = (e) => {
                 e.preventDefault();
                 showPreview(index);
             };
 
-            const imageElement = document.createElement('img');
+                const imageElement = document.createElement('img');
             imageElement.src = `/images/${image.filename}`;
             imageElement.alt = image.original_name || image.filename;
             imageElement.style.maxWidth = '100%';
             imageElement.style.maxHeight = '100%';
-            imageElement.style.objectFit = 'contain';
+                imageElement.style.objectFit = 'contain';
 
-            a.appendChild(imageElement);
+                a.appendChild(imageElement);
             container.appendChild(deleteButton);
             container.appendChild(a);
-            
-            const caption = document.createElement('div');
+                
+                const caption = document.createElement('div');
             caption.textContent = image.original_name || image.filename;
-            caption.style.marginTop = '5px';
-            caption.style.wordBreak = 'break-all';
-            caption.style.fontSize = '12px';
-            caption.style.color = '#666';
-            container.appendChild(caption);
+                caption.style.marginTop = '5px';
+                caption.style.wordBreak = 'break-all';
+                caption.style.fontSize = '12px';
+                caption.style.color = '#666';
+                container.appendChild(caption);
 
             galleryContainer.appendChild(container);
         });
